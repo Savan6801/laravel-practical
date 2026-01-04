@@ -64,8 +64,8 @@
         <div class="bg-white p-6 rounded shadow">
             <h2 class="text-xl font-semibold mb-4">Product Management</h2>
             <div class="mb-4">
-                {{-- <a href="{{ route('admin.products.create') }}" class="bg-green-600 text-white px-4 py-2 rounded">Add New
-                    Product</a> --}}
+                <a href="{{ route('admin.products.create') }}" class="bg-green-600 text-white px-4 py-2 rounded">Add New
+                    Product</a>
             </div>
 
             <table class="w-full text-left border-collapse">
@@ -80,12 +80,17 @@
                 <tbody class="showImportRecords">
                     <!-- Products will be listed here -->
                     @foreach(\App\Models\Product::orderBy('id', 'desc')->take(10)->get() as $product)
-                    <tr>
+                    <tr id="product-row-{{ $product->id }}">
                         <td class="border-b p-2 showImportRecords">{{ $product->name }}</td>
                         <td class="border-b p-2 showImportRecords">${{ $product->price }}</td>
                         <td class="border-b p-2 showImportRecords">{{ $product->stock }}</td>
-                        <td class="border-b p-2 showImportRecords">
-                            <a href="#" class="text-blue-600">Edit</a>
+                        <td class="border-b p-2 showImportRecords flex gap-2">
+                            <a href="{{ route('admin.products.edit', $product->id) }}" class="text-blue-600 hover:underline">Edit</a>
+                            <form action="{{ route('admin.products.destroy', $product->id) }}" method="POST" onsubmit="return confirm('Are you sure?')">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="text-red-600 hover:underline">Delete</button>
+                            </form>
                         </td>
                     </tr>
                     @endforeach
@@ -127,18 +132,25 @@
         });
 
         // Listen for new products
+        // Listen for new products
         var productChannel = pusher.subscribe('products');
         productChannel.bind('created', function(data) {
              const tbody = document.querySelector('table tbody');
              const tr = document.createElement('tr');
              
+             tr.id = 'product-row-' + data.product.id;
              tr.className = "bg-green-50 transition-colors duration-1000";
              tr.innerHTML = `
                 <td class="border-b p-2">${data.product.name} <span class="text-xs bg-green-500 text-white px-1 rounded">NEW</span></td>
                 <td class="border-b p-2">$${data.product.price}</td>
                 <td class="border-b p-2">${data.product.stock}</td>
-                <td class="border-b p-2">
-                    <a href="#" class="text-blue-600">Edit</a>
+                <td class="border-b p-2 flex gap-2">
+                    <a href="/admin/products/${data.product.id}/edit" class="text-blue-600 hover:underline">Edit</a>
+                    <form action="/admin/products/${data.product.id}" method="POST" onsubmit="return confirm('Are you sure?')">
+                        <input type="hidden" name="_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="_method" value="DELETE">
+                        <button type="submit" class="text-red-600 hover:underline">Delete</button>
+                    </form>
                 </td>
              `;
              tbody.insertBefore(tr, tbody.firstChild);
@@ -172,13 +184,19 @@
 
                  // Add to main table - MATCH GENERIC STYLE
                  const tr = document.createElement('tr');
+                 tr.id = 'product-row-' + item.id;
                  tr.className = "bg-green-50 border-b transition-colors duration-1000"; 
                  tr.innerHTML = `
                     <td class="border-b p-2">${item.name} <span class="text-xs bg-green-500 text-white px-1 rounded">NEW</span></td>
                     <td class="border-b p-2">$${item.price}</td>
                     <td class="border-b p-2">${item.stock}</td>
-                    <td class="border-b p-2">
-                        <a href="#" class="text-blue-600">Edit</a>
+                    <td class="border-b p-2 flex gap-2">
+                        <a href="/admin/products/${item.id}/edit" class="text-blue-600 hover:underline">Edit</a>
+                        <form action="/admin/products/${item.id}" method="POST" onsubmit="return confirm('Are you sure?')">
+                            <input type="hidden" name="_token" value="{{ csrf_token() }}">
+                            <input type="hidden" name="_method" value="DELETE">
+                            <button type="submit" class="text-red-600 hover:underline">Delete</button>
+                        </form>
                     </td>
                  `;
                  tbody.insertBefore(tr, tbody.firstChild);
@@ -188,6 +206,44 @@
                      tr.className = "bg-white border-b hover:bg-gray-50 transition-colors";
                  }, 2000);
             });
+        });
+
+        // Listen for product updates
+        productChannel.bind('updated', function(data) {
+            const row = document.getElementById('product-row-' + data.product.id);
+            if (row) {
+                // Update cells
+                row.innerHTML = `
+                    <td class="border-b p-2 showImportRecords">${data.product.name} <span class="text-xs bg-yellow-400 text-black px-1 rounded">UPDATED</span></td>
+                    <td class="border-b p-2 showImportRecords">$${data.product.price}</td>
+                    <td class="border-b p-2 showImportRecords">${data.product.stock}</td>
+                    <td class="border-b p-2 showImportRecords flex gap-2">
+                        <a href="/admin/products/${data.product.id}/edit" class="text-blue-600 hover:underline">Edit</a>
+                        <form action="/admin/products/${data.product.id}" method="POST" onsubmit="return confirm('Are you sure?')">
+                             <input type="hidden" name="_token" value="{{ csrf_token() }}">
+                            <input type="hidden" name="_method" value="DELETE">
+                            <button type="submit" class="text-red-600 hover:underline">Delete</button>
+                        </form>
+                    </td>
+                `;
+                
+                // Highlight effect
+                row.className = "bg-yellow-50 transition-colors duration-1000";
+                setTimeout(() => {
+                    row.className = "";
+                }, 2000);
+            }
+        });
+
+        // Listen for product deletions
+        productChannel.bind('deleted', function(data) {
+            const row = document.getElementById('product-row-' + data.id);
+            if (row) {
+                row.className = "bg-red-100 transition-colors duration-500";
+                setTimeout(() => {
+                    row.remove();
+                }, 500);
+            }
         });
 
         function updateMembers(members) {

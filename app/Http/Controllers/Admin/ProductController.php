@@ -32,7 +32,7 @@ class ProductController extends Controller
 
         broadcast(new \App\Events\ProductCreated($product));
 
-        return redirect()->route('admin.products.index')->with('success', 'Product created successfully.');
+        return redirect()->route('admin.dashboard')->with('success', 'Product created successfully.');
     }
 
     public function edit(Product $product)
@@ -49,13 +49,18 @@ class ProductController extends Controller
         ]);
 
         $product->update($request->all());
+        
+        broadcast(new \App\Events\ProductUpdated($product));
 
-        return redirect()->route('admin.products.index')->with('success', 'Product updated successfully.');
+        return redirect()->route('admin.dashboard')->with('success', 'Product updated successfully.');
     }
 
     public function destroy(Product $product)
     {
         $product->delete();
+        
+        broadcast(new \App\Events\ProductDeleted($product->id));
+
         return back()->with('success', 'Product deleted successfully.');
     }
 }

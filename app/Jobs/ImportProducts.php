@@ -29,28 +29,26 @@ class ImportProducts implements ShouldQueue
         $header = fgetcsv($file);
 
         $batch = [];
-        $batchSize = 500;
+        $batchSize = 100; // Reduced batch size since we are doing individual creates
 
         while (($row = fgetcsv($file)) !== false) {
-
-            $batch[] = [
+             // Create one by one to get ID
+             $product = \App\Models\Product::create([
                 'name'  => $row[0] ?? 'Product',
+                'description' => $row[1] ?? '',
                 'price' => is_numeric($row[2] ?? null) ? $row[2] : 0,
                 'stock' => is_numeric($row[3] ?? null) ? $row[3] : 0,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ];
+            ]);
+            
+            $batch[] = $product;
 
             if (count($batch) >= $batchSize) {
-                DB::table('products')->insert($batch);
                 broadcast(new ProductImported($batch));
                 $batch = [];
             }
         }
 
-
-        if ($batch) {
-            DB::table('products')->insert($batch);
+        if (count($batch) > 0) {
             broadcast(new ProductImported($batch));
         }
 
