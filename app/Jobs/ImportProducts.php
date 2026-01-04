@@ -19,6 +19,10 @@ class ImportProducts implements ShouldQueue
     public function __construct($filePath)
     {
         $this->filePath = $filePath;
+    }
+
+    public function handle()
+    {
         if (!file_exists($this->filePath)) return;
 
         $file = fopen($this->filePath, 'r');

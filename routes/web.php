@@ -23,7 +23,7 @@ Route::get('/', function () {
 });
 
 Route::middleware(['guest'])->group(function () {
-    Route::get('/', [App\Http\Controllers\Customer\AuthController::class, 'showLoginForm'])->name('login');
+    Route::get('/login', [App\Http\Controllers\Customer\AuthController::class, 'showLoginForm'])->name('login');
     Route::post('/login', [App\Http\Controllers\Customer\AuthController::class, 'login']);
     Route::get('/register', [App\Http\Controllers\Customer\AuthController::class, 'showRegisterForm'])->name('register');
     Route::post('/register', [App\Http\Controllers\Customer\AuthController::class, 'register']);
